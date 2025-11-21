@@ -1,0 +1,46 @@
+task.spawn(function()
+    if not game:IsLoaded() then game.Loaded:Wait() end
+
+    local player = game.Players.LocalPlayer
+    if not player.Character then player.CharacterAdded:Wait() end
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+
+    hrp.Anchored = true
+    task.wait(0.1)
+    hrp.CFrame = CFrame.new(154.62, 3.15, 19847.60)
+
+    local maxRange = 300
+    local done = false
+
+    local function trySit(gun)
+        if gun then
+            local seat = gun:FindFirstChild("VehicleSeat") or gun:FindFirstChildWhichIsA("VehicleSeat", true)
+            if seat and seat:IsA("VehicleSeat") and (seat.Position - hrp.Position).Magnitude <= maxRange then
+                seat.Disabled = false
+                hrp.CFrame = seat.CFrame
+                done = true
+            end
+        end
+    end
+
+    while not done do
+        task.defer(function()
+            local sz = workspace:FindFirstChild("SafeZones") and workspace.SafeZones:FindFirstChild("SafeZone")
+            if not sz then return end
+
+            -- Form 1: Sentries.TurretSpot.MaximGun
+            local gun1 = sz:FindFirstChild("Sentries") and sz.Sentries:FindFirstChild("TurretSpot") and sz.Sentries.TurretSpot:FindFirstChild("MaximGun")
+            trySit(gun1)
+
+            -- Form 2: Buildings.Gunsmith.GunTable.ShopItems.MaximGun
+            local gun2 = sz:FindFirstChild("Buildings") and sz.Buildings:FindFirstChild("Gunsmith")
+            gun2 = gun2 and gun2:FindFirstChild("GunTable") and gun2.GunTable:FindFirstChild("ShopItems") and gun2.GunTable.ShopItems:FindFirstChild("MaximGun")
+            trySit(gun2)
+        end)
+        task.wait() -- extremely short to avoid overload
+    end
+
+    task.wait(0.2)
+    hrp.Anchored = false
+end)
