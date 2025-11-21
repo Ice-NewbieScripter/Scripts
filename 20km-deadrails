@@ -1,0 +1,54 @@
+task.spawn(function()
+    if not game:IsLoaded() then game.Loaded:Wait() end
+
+    local player = game.Players.LocalPlayer
+    if not player.Character then player.CharacterAdded:Wait() end
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+
+    hrp.Anchored = true
+    task.wait(0.1)
+    hrp.CFrame = CFrame.new(-550.65, 3.00, 9927.57)
+
+    local maxRange = 300
+    local done = false
+
+    local function trySit(gun)
+        if gun then
+            local seat = gun:FindFirstChild("VehicleSeat") or gun:FindFirstChildWhichIsA("VehicleSeat", true)
+            if seat and seat:IsA("VehicleSeat") and (seat.Position - hrp.Position).Magnitude <= maxRange then
+                seat.Disabled = false
+                hrp.CFrame = seat.CFrame
+                done = true
+            end
+        end
+    end
+
+    while not done do
+        task.defer(function()
+            -- Look for SafeZone in workspace
+            local safeZoneContainer = workspace:FindFirstChild("SafeZones")
+            local safeZone = safeZoneContainer and safeZoneContainer:FindFirstChild("SafeZone")
+            if not safeZone then return end
+
+            -- Type 1: Sentries.TurretSpot.MaximGun
+            local gun1 = safeZone:FindFirstChild("Sentries")
+            gun1 = gun1 and gun1:FindFirstChild("TurretSpot")
+            gun1 = gun1 and gun1:FindFirstChild("MaximGun")
+            trySit(gun1)
+
+            -- Type 2: Buildings.Gunsmith.GunTable.ShopItems.MaximGun
+            local gun2 = safeZone:FindFirstChild("Buildings")
+            gun2 = gun2 and gun2:FindFirstChild("Gunsmith")
+            gun2 = gun2 and gun2:FindFirstChild("GunTable")
+            gun2 = gun2 and gun2:FindFirstChild("ShopItems")
+            gun2 = gun2 and gun2.ShopItems:FindFirstChild("MaximGun")
+            trySit(gun2)
+        end)
+        
+        task.wait() -- very short wait to prevent overloading the thread
+    end
+
+    task.wait(0.2)
+    hrp.Anchored = false
+end)
