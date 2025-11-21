@@ -1,0 +1,64 @@
+task.spawn(function()
+    -- Wait for the game to fully load
+    if not game:IsLoaded() then
+        game.Loaded:Wait()
+    end
+
+    -- Get player and character
+    local player = game.Players.LocalPlayer
+    if not player.Character then
+        player.CharacterAdded:Wait()
+    end
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+
+    -- Freeze player and teleport to SE2 safe zone (island)
+    hrp.Anchored = true
+    task.wait(0.1)
+    hrp.CFrame = CFrame.new(51.22, 3.20, -19802.53)
+
+    local maxRange = 300  -- Maximum distance to detect the MaximGun
+    local done = false
+
+    -- Try to sit on the MaximGun's VehicleSeat
+    local function trySit(gun)
+        if gun then
+            local seat = gun:FindFirstChild("VehicleSeat") or gun:FindFirstChildWhichIsA("VehicleSeat", true)
+            if seat and seat:IsA("VehicleSeat") and (seat.Position - hrp.Position).Magnitude <= maxRange then
+                seat.Disabled = false
+                hrp.CFrame = seat.CFrame * CFrame.new(0, 1.5, 0)  -- Small offset for reliable seating
+                done = true
+            end
+        end
+    end
+
+    -- Keep searching until we successfully sit on a MaximGun
+    while not done do
+        task.defer(function()
+            -- Locate the current SafeZone
+            local safeZoneContainer = workspace:FindFirstChild("SafeZones")
+            local safeZone = safeZoneContainer and safeZoneContainer:FindFirstChild("SafeZone")
+            if not safeZone then return end
+
+            -- Type 1: Placed as a sentry turret
+            local gun1 = safeZone:FindFirstChild("Sentries")
+            gun1 = gun1 and gun1:FindFirstChild("TurretSpot")
+            gun1 = gun1 and gun1:FindFirstChild("MaximGun")
+            trySit(gun1)
+
+            -- Type 2: Sitting on the gunsmith shop table
+            local gun2 = safeZone:FindFirstChild("Buildings")
+            gun2 = gun2 and gun2:FindFirstChild("Gunsmith")
+            gun2 = gun2 and gun2:FindFirstChild("GunTable")
+            gun2 = gun2 and gun2:FindFirstChild("ShopItems")
+            gun2 = gun2 and gun2:FindFirstChild("MaximGun")
+            trySit(gun2)
+        end)
+
+        task.wait()  -- Very short delay to prevent overload/crash
+    end
+
+    -- Unanchor once seated
+    task.wait(0.2)
+    hrp.Anchored = false
+end)
